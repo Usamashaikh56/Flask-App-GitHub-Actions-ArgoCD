@@ -1,1 +1,72 @@
+name: test and deploy
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - '**/*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Set up Python 3.9
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+
+      # Docker setup
+      - name: Docker setup
+        uses: docker/setup-buildx-action@v1
+
+      # Install dependencies
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install flake8
+
+      # Run Linting test
+      - name: Run Linting test
+        run: |
+          flake8 --ignore=E501,W503 .
+
+      # Docker login
+      - name: Docker login
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # Tag image
+      - name: Tag image
+        id: version
+        run: |
+          version=$(date +'%Y%m%d%H%M%S')
+          echo "version=$version" >> $GITHUB_ENV
+
+      # Build docker image
+      - name: Build docker image
+        run: |
+          docker build . -t usama807/flask-app:${{ env.version }}
+
+      # Push image to Docker Hub
+      - name: Push image to Docker Hub
+        run: |
+          docker push usama807/flask-app:${{ env.version }}
+
+
+                  
+
+
+
+
+
 
